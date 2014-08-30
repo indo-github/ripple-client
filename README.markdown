@@ -1,7 +1,7 @@
 ripple-client
 ===
 
-Simple Ripple client in ndoe.js
+Simple Ripple client for node.js
 
 Install
 ---
