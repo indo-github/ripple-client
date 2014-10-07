@@ -118,12 +118,18 @@ RippleClient.prototype.submit = function(tx, cb) {
         Flags: 0
     })
 
-    debug('tx_json %s', censor(util.inspect(tx_json, null, 4)))
-
-    this.request('submit', {
+    var req = {
         secret: this.opts.secrets[tx.Account],
         tx_json: tx_json
-    }, function(err, res) {
+    }
+
+    if (this.opts.feeMultMax !== undefined) {
+        req.fee_mult_max = this.opts.feeMultMax
+    }
+
+    debug('request %s', censor(util.inspect(req, null, 4)))
+
+    this.request('submit', req, function(err, res) {
         if (err) return cb(err)
 
         if (res.engine_result == 'tesSUCCESS') {
