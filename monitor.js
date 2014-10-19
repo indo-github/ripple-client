@@ -155,9 +155,9 @@ exports.prototype.processTransaction = function(inner, meta) {
 
     if (!this.live) {
         // Has the transaction already been processed by catch-up?
-        if (~this.processedHashes.indexOf(tx.hash)) return
+        if (~this.processedHashes.indexOf(inner.hash)) return
 
-        this.processedHashes.push(tx.hash)
+        this.processedHashes.push(inner.hash)
     }
 
     _.each(this.accounts, function(subs, account) {
