@@ -14,7 +14,7 @@ module.exports = exports = function(opts) {
     this.ripple.on('close', this.rippleClose)
     this.ripple.on('transaction', this.rippleTransaction)
     this.ripple.on('ledgerclosed', this.rippleLedgerClosed)
-    this.internalLedger = opts.ledgerIndex || 3696574
+    this.internalLedger = opts.ledgerIndex || 0
     this.accounts = {}
 }
 
@@ -53,6 +53,11 @@ exports.prototype.rippleOpen = function() {
         }.bind(this)
     ], function(err) {
         if (err) {
+            if (err.message == 'Not synced to Ripple network.') {
+                debug('node is not synced to the network. retry in 5 sec')
+                return setTimeout(this.rippleOpen.bind(this), 5e3)
+            }
+
             var wrappedErr = new Error('Initialization failed: ' + err.message)
             wrappedErr.inner = err
             return this.emit('error', wrappedErr)
@@ -100,12 +105,8 @@ exports.prototype.catchupAccount = function(account, from, cb) {
             if (err) return cb(err)
             assert(res.transactions)
             res.transactions.forEach(function(tx) {
-                if (tx.meta.TransactionResult != 'tesSUCCESS') {
-                    console.log('ignoring tx %s with transaction result %s',
-                        tx.tx.hash, tx.meta.TransactionResult)
-                    return
-                }
-                that.processTransaction(tx.tx)
+                if (tx.meta.TransactionResult != 'tesSUCCESS') return
+                that.processTransaction(tx)
             }.bind(that))
             if (!res.marker) return cb()
             next(res.marker)
@@ -148,8 +149,10 @@ exports.prototype.rippleTransaction = function(tx) {
 }
 
 exports.prototype.processTransaction = function(tx) {
-    if (tx.TransactionType != 'Payment') {
-        return debug('Ignoring tx type %s', tx.TransactionType)
+    var inner = tx.tx || tx.transaction
+
+    if (inner.TransactionType != 'Payment') {
+        return debug('Ignoring tx type %s', inner.TransactionType)
     }
 
     if (!this.live) {
@@ -160,9 +163,9 @@ exports.prototype.processTransaction = function(tx) {
     }
 
     _.each(this.accounts, function(subs, account) {
-        if (account != tx.Destination) return
+        if (account != inner.Destination) return
         subs.forEach(function(sub) {
-            sub(tx)
+            sub(inner, tx.meta || inner.meta)
         })
     })
 }

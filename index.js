@@ -1,14 +1,15 @@
 var _ = require('lodash')
-, EventEmitter = require('events').EventEmitter
-, util = require('util')
-, debug = require('debug')('ripple-client')
-, ReconWs = require('recon-ws')
-, assert = require('assert')
-, num = require('num')
+var EventEmitter = require('events').EventEmitter
+var util = require('util')
+var debug = require('debug')('ripple-client')
+var ReconWs = require('recon-ws')
+var assert = require('assert')
+var num = require('num')
 
 function RippleClient(opts) {
     this.opts = _.extend({
-        uri: 'wss://s1.ripple.com'
+        uri: 'wss://s1.ripple.com',
+        allTransactions: false
     }, opts)
 
     this.connected = false
@@ -72,8 +73,8 @@ RippleClient.prototype.connMessage = function(msg) {
         assert.equal(data.status, 'closed')
         assert.equal(data.validated, true)
 
-        if (data.engine_result == 'tesSUCCESS') {
-            return this.emit('transaction', data.transaction)
+        if (this.opts.allTransactions || data.engine_result == 'tesSUCCESS') {
+            return this.emit('transaction', data)
         } else {
             return
         }
@@ -91,6 +92,7 @@ RippleClient.prototype.request = function(cmd, opts, cb) {
         cb = opts
         opts = null
     }
+
     var id = this.commandIndex++
     , request = _.extend({
         id: id,
@@ -195,5 +197,16 @@ RippleClient.prototype.payment = function(details, cb) {
     debug('submitting payment...')
     this.submit(tx, cb)
 }
+
+RippleClient.prototype.sign = function(tx, secret, cb) {
+    return RippleClient.sign(this, tx, secret, cb)
+}
+
+RippleClient.prototype.submitAndTrack = function(tx, cb) {
+    return RippleClient.submitAndTrack(this, tx, cb)
+}
+
+RippleClient.sign = require('./sign')
+RippleClient.submitAndTrack = require('./tracked-submit')
 
 module.exports = RippleClient
