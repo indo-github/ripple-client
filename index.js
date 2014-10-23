@@ -207,6 +207,11 @@ RippleClient.prototype.submitAndTrack = function(tx, cb) {
 }
 
 RippleClient.sign = require('./sign')
-RippleClient.submitAndTrack = require('./tracked-submit')
+
+RippleClient.submitAndTrack = function(client, hex, cb) {
+    var TrackedSubmit = require('./tracked-submit')
+    var tracked = new TrackedSubmit({ client: client })
+    tracked.send(hex, cb)
+}
 
 module.exports = RippleClient
